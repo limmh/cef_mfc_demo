@@ -1,0 +1,1 @@
+Please include the Release versions of libcef.lib and libcef_dll_wrapper.lib in this folder.
