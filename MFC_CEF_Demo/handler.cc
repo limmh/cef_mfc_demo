@@ -4,7 +4,7 @@
 #include "utils.h"
 
 ClientHandler::ClientHandler() :
-	m_Browser(NULL), m_BrowserId(0), m_MainHwnd(NULL), m_bIsClosing(false)
+	m_BrowserId(0), m_MainHwnd(NULL), m_bIsClosing(false)
 {
 }
 
@@ -19,7 +19,7 @@ void ClientHandler::OnAddressChange(CefRefPtr<CefBrowser> browser, CefRefPtr<Cef
 	if (wndParent == m_MainHwnd) {
 		CefWindowHandle editUrl = GetDlgItem(m_MainHwnd, IDC_EDIT_URL);
 		if (editUrl)
-			SetWindowTextW(editUrl, url.c_str());
+			SetWindowTextW(editUrl, reinterpret_cast<LPCWSTR>(url.c_str()));
 	} else {
 		std::wstring myTitle(url);
 		myTitle += L" - ";
@@ -32,10 +32,9 @@ void ClientHandler::OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString
 	CefWindowHandle wnd = browser->GetHost()->GetWindowHandle();
 	CefWindowHandle wndParent = ::GetParent(wnd);
 	if (wndParent) {
-		SetWindowTextW(wndParent, title.c_str());
+		SetWindowTextW(wndParent, reinterpret_cast<LPCWSTR>(title.c_str()));
 	} else {
-		std::wstring myTitle;
-		utils::GetWindowText(wnd, myTitle);
+		std::wstring myTitle = utils::GetWindowText(wnd);
 		if (myTitle.empty()) {
 			SetWindowTextW(wnd, myTitle.c_str());
 		} else if (L' ' == myTitle[myTitle.length() - 1]) {
@@ -45,11 +44,12 @@ void ClientHandler::OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString
 	}
 }
 
-void ClientHandler::OnBeforeDownload(CefRefPtr<CefBrowser> browser,	CefRefPtr<CefDownloadItem> download_item,
+bool ClientHandler::OnBeforeDownload(CefRefPtr<CefBrowser> browser,	CefRefPtr<CefDownloadItem> download_item,
 									const CefString& suggested_name, CefRefPtr<CefBeforeDownloadCallback> callback)
 {
 	REQUIRE_UI_THREAD()
 	callback->Continue(suggested_name, true);
+	return true;
 }
 
 void ClientHandler::OnDownloadUpdated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDownloadItem> download_item,
@@ -63,7 +63,7 @@ void ClientHandler::OnDownloadUpdated(CefRefPtr<CefBrowser> browser, CefRefPtr<C
 void ClientHandler::OnAfterCreated(CefRefPtr<CefBrowser> browser)
 {
 	REQUIRE_UI_THREAD()
-	AutoLock lock_scope(this);
+	base::cef_internal::AutoLock lock_scope(m_lock);
 
 	if (!m_Browser.get()) {
 		// Keep a reference to the main browser.
@@ -81,7 +81,7 @@ bool ClientHandler::DoClose(CefRefPtr<CefBrowser> browser)
 	REQUIRE_UI_THREAD()
 
 	// Protect data members from access on multiple threads.
-	AutoLock lock_scope(this);
+	base::cef_internal::AutoLock lock_scope(m_lock);
 
 	// Closing the main window requires special handling.
 	if (m_BrowserId == browser->GetIdentifier()) {
@@ -96,11 +96,12 @@ bool ClientHandler::DoClose(CefRefPtr<CefBrowser> browser)
 void ClientHandler::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 {
 	REQUIRE_UI_THREAD()
-	AutoLock lock_scope(this);
+	base::cef_internal::AutoLock lock_scope(m_lock);
 
 	if (m_BrowserId == browser->GetIdentifier()) {
 		CloseAllPopups(false);
-		m_Browser = NULL;
+		m_Browser = nullptr;
+		utils::NotifyWindowToClose(m_MainHwnd);
 	} else if (browser->IsPopup()) {
 		std::list<CefRefPtr<CefBrowser> >::iterator it;
 		for (it = m_PopupList.begin(); it != m_PopupList.end(); ++it) {
@@ -114,7 +115,7 @@ void ClientHandler::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 
 void ClientHandler::SetMainHwnd(CefWindowHandle hwnd)
 {
-	AutoLock lock_scope(this);
+	base::cef_internal::AutoLock lock_scope(m_lock);
 	m_MainHwnd = hwnd;
 }
 

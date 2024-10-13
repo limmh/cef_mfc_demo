@@ -29,38 +29,35 @@ END_MESSAGE_MAP()
 CMainFrame::CMainFrame() :
 	m_originalStyle(0),
 	m_zoomLevel(0.0),
-	m_left(0), m_top(0), m_width(500), m_height(400),
-	m_screenModeToggled(false), m_isFullScreen(false), m_cefIsInitialized(false)
+	m_left(0),
+	m_top(0),
+	m_width(500),
+	m_height(400),
+	m_screenModeToggled(false),
+	m_isFullScreen(false)
 {
 }
 
 CMainFrame::~CMainFrame()
 {
-	if (m_cefIsInitialized) {
-		CefShutdown();
-		m_cefIsInitialized = false;
-	}
 }
 
 bool CMainFrame::init()
 {
 	m_browserHandler = new ClientHandler;
 	CefMainArgs mainArgs(::GetModuleHandle(NULL));
-	int rc = CefExecuteProcess(mainArgs, NULL, NULL);
+	int rc = CefExecuteProcess(mainArgs, nullptr, NULL);
 	if (rc >= 0)
 		return false;
 
 	CefSettings settings;
 	settings.multi_threaded_message_loop = true;
 	settings.no_sandbox = true;
-	settings.single_process = false;
 
-	if (!CefInitialize(mainArgs, settings, NULL, NULL)) {
-		AfxMessageBox(_T("Failed to initialize CEF."), MB_ICONERROR);
+	if (!CefInitialize(mainArgs, settings, nullptr, NULL)) {
+		//AfxMessageBox(_T("Failed to initialize CEF."), MB_ICONERROR);
 		return false;
 	}
-
-	m_cefIsInitialized = true;
 
 	CefRefPtr<CefCommandLine> commandLine = CefCommandLine::CreateCommandLine();
 	commandLine->InitFromString(::GetCommandLineW());
@@ -68,7 +65,7 @@ bool CMainFrame::init()
 		m_url = commandLine->GetSwitchValue(L"url");
 
 	this->Create(NULL, _T(""));
-	this->ShowWindow(SW_NORMAL);
+	this->ShowWindow(SW_SHOW);
 	this->UpdateWindow();
 
 	return true;
@@ -78,9 +75,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT createStruct)
 {
 	CFrameWnd::OnCreate(createStruct);
 
-	CWnd *parent = dynamic_cast<CWnd*>(this);
-
-	RECT rect;
+	RECT rect = {};
+	CWnd *parent = static_cast<CWnd*>(this);
 	parent->GetClientRect(&rect);
 
 	m_font.CreateFont(17, 0, 0, 0, FW_NORMAL, 0, 0, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("Arial"));
@@ -108,7 +104,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT createStruct)
 	m_btnZoomIn.SetFont(&m_font);
 	m_editUrl.SetFont(&m_font);
 
-	if (m_tooltipCtrl.Create(dynamic_cast<CWnd*>(this))) {
+	if (m_tooltipCtrl.Create(static_cast<CWnd*>(this))) {
 		m_tooltipCtrl.AddTool(&m_btnBack, _T("Go back"));
 		m_tooltipCtrl.AddTool(&m_btnForward, _T("Go forward"));
 		m_tooltipCtrl.AddTool(&m_btnReload, _T("Reload"));
@@ -127,14 +123,14 @@ int CMainFrame::OnCreate(LPCREATESTRUCT createStruct)
 
 	CefWindowInfo windowInfo;
 	CefBrowserSettings settings;
-	rect.top += s_height;
-	windowInfo.SetAsChild(parentWnd, rect);
+	CefRect cefRect(rect.left, rect.top + s_height, (rect.right - rect.left), (rect.bottom - rect.top - s_height));
+	windowInfo.SetAsChild(parentWnd, cefRect);
 	m_browserHandler->SetMainHwnd(parentWnd);
 
 	if (m_url.empty())
 		m_url = L"www.google.com";
 
-	CefBrowserHost::CreateBrowser(windowInfo, m_browserHandler.get(), m_url, settings, NULL);
+	CefBrowserHost::CreateBrowser(windowInfo, m_browserHandler.get(), m_url, settings, nullptr, nullptr);
 	return 0;
 }
 
@@ -149,48 +145,49 @@ void CMainFrame::OnClose()
 		}
 	}
 
-	m_browserHandler = NULL;
+	m_browserHandler = nullptr;
 	CFrameWnd::OnClose();
+	CefShutdown();
 }
 
-void CMainFrame::OnSize(UINT type, int x, int y)
+void CMainFrame::OnSize(UINT type, int width, int height)
 {
-	int posX;
-	int newEditUrlWidth = x - 4*s_offset - 15*s_offset;
+	int posX = 0;
+	int newEditUrlWidth = width - 4*s_offset - 15*s_offset;
 	if (newEditUrlWidth > 0) 
 		m_editUrl.SetWindowPos(NULL, 4*s_offset, 0, newEditUrlWidth, s_height, 0);
 
-	posX = x - 8*s_offset;
+	posX = width - 8*s_offset;
 	if (posX > 0)
 		m_editFind.SetWindowPos(NULL, posX, 0, 8*s_offset, s_height, 0);
-	posX = x - 10*s_offset;
+	posX = width - 10*s_offset;
 	if (posX > 0)
 		m_btnScreenMode.SetWindowPos(NULL, posX, 0, 2*s_offset, s_height, 0);
-	posX = x - 13*s_offset;
+	posX = width - 13*s_offset;
 	if (posX > 0)
 		m_btnZoomReset.SetWindowPos(NULL, posX, 0, 3*s_offset, s_height, 0);
-	posX = x - 14*s_offset;
+	posX = width - 14*s_offset;
 	if (posX > 0)
 		m_btnZoomOut.SetWindowPos(NULL, posX, 0, s_offset, s_height, 0);
-	posX = x - 15*s_offset;
+	posX = width - 15*s_offset;
 	if (posX > 0)
 		m_btnZoomIn.SetWindowPos(NULL, posX, 0, s_offset, s_height, 0);
 
 	if (!m_screenModeToggled) {
-		m_width = x;
-		m_height = y;
+		m_width = width;
+		m_height = height;
 	}
 
 	CefRefPtr<CefBrowser> browser = m_browserHandler->GetBrowser();
 	if (browser.get()) {
-		int pageHeight = y - s_height;
+		int pageHeight = height - s_height;
 		if (pageHeight > 0) {
 			HWND browserWnd = browser->GetHost()->GetWindowHandle();
-			::SetWindowPos(browserWnd, NULL, 0, s_height, x, pageHeight, SWP_NOZORDER);
+			::SetWindowPos(browserWnd, NULL, 0, s_height, width, pageHeight, SWP_NOZORDER);
 		}
 	}
 
-	CFrameWnd::OnSize(type, x, y);
+	CFrameWnd::OnSize(type, width, height);
 }
 
 void CMainFrame::OnMove(int x, int y)
@@ -233,8 +230,7 @@ void CMainFrame::OnBtnStopClicked()
 
 void CMainFrame::LoadPage()
 {
-	std::wstring url;
-	utils::GetWindowText(m_editUrl.GetSafeHwnd(), url);
+	std::wstring url = utils::GetWindowText(m_editUrl.GetSafeHwnd());
 	if (!url.empty()) {
 		CefRefPtr<CefBrowser> browser = m_browserHandler->GetBrowser();
 		browser->GetMainFrame()->LoadURL(url);
@@ -283,11 +279,10 @@ void CMainFrame::Find()
 	if (browser.get()) {
 		CefRefPtr<CefBrowserHost> browserHost = browser->GetHost();
 		if (browserHost.get()) {
-			std::wstring text;
-			utils::GetWindowText(m_editFind.GetSafeHwnd(), text);
+			std::wstring text = utils::GetWindowText(m_editFind.GetSafeHwnd());
 			if (!text.empty()) {
-				bool findNext = (!wcsicmp(text.c_str(), m_keyword.c_str())) ? true : false;
-				browserHost->Find(0, text, true, false, findNext);
+				const bool findNext = (0 == wcsicmp(text.c_str(), m_keyword.c_str()));
+				browserHost->Find(text, true, false, findNext);
 				if (!findNext)
 					m_keyword = text;
 			}
@@ -342,7 +337,7 @@ BOOL CMainFrame::CUrlEdit::PreTranslateMessage(MSG *pMsg)
 	case WM_KEYDOWN:
 		if (VK_RETURN == pMsg->wParam) {
 			CWnd *main = AfxGetMainWnd();
-			if (main)
+			if (main != nullptr)
 				::PostMessage(main->GetSafeHwnd(), WM_COMMAND, ID_URL_LOAD_PAGE, 0);
 			return TRUE;
 		}
@@ -361,12 +356,12 @@ BOOL CMainFrame::CMyFindEdit::PreTranslateMessage(MSG *pMsg)
 	case WM_KEYDOWN:
 		if (VK_RETURN == pMsg->wParam) {
 			CWnd *main = AfxGetMainWnd();
-			if (main)
+			if (main != nullptr)
 				::PostMessage(main->GetSafeHwnd(), WM_COMMAND, ID_FIND, 0);
 			return TRUE;
 		} else if (VK_ESCAPE == pMsg->wParam) {
 			CWnd *main = AfxGetMainWnd();
-			if (main)
+			if (main != nullptr)
 				::PostMessage(main->GetSafeHwnd(), WM_COMMAND, ID_CANCEL_FIND, 0);
 			return TRUE;
 		}

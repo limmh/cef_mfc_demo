@@ -10,7 +10,7 @@ class CMainFrame : public CFrameWnd
 {
 public:
 	CMainFrame();
-	~CMainFrame();
+	virtual ~CMainFrame();
 	bool init();
 
 DECLARE_MESSAGE_MAP()
@@ -18,7 +18,7 @@ DECLARE_MESSAGE_MAP()
 protected:
 	afx_msg int OnCreate(LPCREATESTRUCT createStruct);
 	afx_msg void OnClose();
-	afx_msg void OnSize(UINT type, int x, int y);
+	afx_msg void OnSize(UINT type, int width, int height);
 	afx_msg void OnMove(int x, int y);
 
 	virtual BOOL PreTranslateMessage(MSG *pMsg) override;
@@ -61,7 +61,7 @@ private:
 	LONG_PTR m_originalStyle;
 	double m_zoomLevel;
 	int m_left, m_top, m_width, m_height;
-	bool m_screenModeToggled, m_isFullScreen, m_cefIsInitialized;
+	bool m_screenModeToggled, m_isFullScreen;
 };
 
 #endif

@@ -5,8 +5,9 @@
 #include <Windows.h>
 
 namespace utils {
-BOOL SetFullScreen(HWND hWnd);
-void GetWindowText(HWND hwnd, std::wstring& text);
+bool SetFullScreen(HWND hWnd);
+std::wstring GetWindowText(HWND hWnd);
+void NotifyWindowToClose(HWND hWwnd);
 }
 
 #endif

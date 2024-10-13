@@ -3,10 +3,10 @@
 
 BOOL CMyApp::InitInstance()
 {
-	CMainFrame *mf = new CMainFrame;
-	if (false == mf->init())
+	CMainFrame *frame = new CMainFrame;
+	if (false == frame->init())
 		return FALSE;
-	m_pMainWnd = dynamic_cast<CWnd*>(mf);
+	m_pMainWnd = static_cast<CWnd*>(frame);
 	CWinApp::InitInstance();
 	return TRUE;
 }

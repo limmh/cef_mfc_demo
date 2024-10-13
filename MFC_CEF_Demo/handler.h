@@ -40,7 +40,7 @@ public:
 	virtual	void OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString& title) override;
 
 	// CefDownloadHandler methods
-	virtual	void OnBeforeDownload(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDownloadItem> download_item,
+	virtual	bool OnBeforeDownload(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDownloadItem> download_item,
 		const CefString& suggested_name, CefRefPtr<CefBeforeDownloadCallback> callback) override;
 	virtual	void OnDownloadUpdated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDownloadItem> download_item,
 		CefRefPtr<CefDownloadItemCallback> callback) override;
@@ -56,7 +56,7 @@ public:
 	}
 	
 	bool IsClosing() {
-		AutoLock lock(this);
+		base::cef_internal::AutoLock lock(m_lock);
 		return m_bIsClosing;
 	}
 	
@@ -67,6 +67,7 @@ public:
 	void SetMainHwnd(CefWindowHandle hwnd);
 
 private:
+	base::cef_internal::Lock m_lock;
 	void CloseAllPopups(bool force_close);
 
 private:
@@ -85,8 +86,7 @@ private:
 	// True if the main browser window is currently closing.
 	bool m_bIsClosing;
 
-IMPLEMENT_REFCOUNTING(ClientHandler)
-IMPLEMENT_LOCKING(ClientHandler)
+IMPLEMENT_REFCOUNTING(ClientHandler);
 };
 
 #endif
