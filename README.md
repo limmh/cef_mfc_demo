@@ -33,13 +33,25 @@ The application must link to libcef.lib and libcef_dll_wrapper.lib.
 Please refer to the readme text files in the repository for more information.
 The CEF binary files (DLLs, locale files, etc.) must be placed in the same folder as the application.
 
+The following files which are larger than 50 MB each are not included in this feature branch:
+- cef_binary\Win32\Debug\cef_sandbox.lib
+- cef_binary\Win32\Debug\libcef.dll
+- cef_binary\Win32\Release\cef_sandbox.lib
+- cef_binary\Win32\Release\libcef.dll
+
+Please manually download the files [here](https://cef-builds.spotifycdn.com/cef_binary_129.0.12%2Bgf09539f%2Bchromium-129.0.6668.101_windows32.tar.bz2).
+Extract the files from the compressed file.
+Place the debug files in cef_binary\Win32\Debug in your local repository.
+Place the release files in cef_binary\Win32\Release in your local repository.
+The download link is valid at the time of writing and may become outdated in the future.
+
 A build script, build.bat is provided to automate the whole process of building solutions and copying the necessary files.
 Please update build.bat to specify the correct paths to CMake and Visual Studio MSBuild before running the script.
 Another script, clean.bat is provided to clean all build files.
 
 ## Issues
 
-The following issues occur in this feature branch. There are no solutions yet.
+The following issues have been found in this feature branch. There are no solutions yet.
 
 - Sometimes, the content of a page is not properly displayed.
 - The find feature does not work. Words or phrases that match keywords are not highlighted.
